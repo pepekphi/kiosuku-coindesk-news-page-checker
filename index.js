@@ -3,7 +3,7 @@ const cheerio = require('cheerio');
 
 const POLL_INTERVAL_MS = 4000;
 const URL = 'https://www.coindesk.com/latest-crypto-news';
-const MAX_BYTES = 5 * 1024; // pull only first x KiB
+const MAX_BYTES = 0.5 * 1024; // pull only first x KiB, it worked with 5
 
 let lastSeenLink = null;
 let intervalId;
