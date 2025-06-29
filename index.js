@@ -3,30 +3,15 @@ const cheerio = require('cheerio');
 
 const POLL_INTERVAL_MS = 2000;
 const URL = 'https://www.coindesk.com/latest-crypto-news';
-const MAX_BYTES = 28 * 1024; // only fetch first 32 KiB of HTML
+const MAX_BYTES = 10 * 1024; // pull only first x KiB
 
-let lastSeenAge = null;
 let lastSeenLink = null;
 let intervalId;
 
 async function pollPage() {
   const now = new Date().toISOString();
-
   try {
-    // 1) HEAD to check edge-cache age
-    const head = await axios.head(URL, { timeout: 3000 });
-    const age  = parseInt(head.headers.age || '0', 10);
-
-    // 2) Skip GET if cache age hasn't dropped
-    if (lastSeenAge !== null && age >= lastSeenAge) {
-      console.log(`${now} – HEAD age ${age}, no change`);
-      lastSeenAge = age;
-      return;
-    }
-    console.log(`${now} – HEAD age ${age}, fetching first ${MAX_BYTES} bytes…`);
-    lastSeenAge = age;
-
-    // 3) GET only the first MAX_BYTES via Range
+    // 1) GET only the first MAX_BYTES of the page
     const resp = await axios.get(URL, {
       headers: { Range: `bytes=0-${MAX_BYTES - 1}` },
       timeout: 5000,
@@ -34,11 +19,11 @@ async function pollPage() {
       validateStatus: s => s === 206 || s === 200
     });
 
-    // 4) Convert chunk and parse
-    const htmlChunk = resp.data.toString('utf8');
-    const $         = cheerio.load(htmlChunk);
+    // 2) Convert to string and load into Cheerio
+    const html = resp.data.toString('utf8');
+    const $    = cheerio.load(html);
 
-    // 5) Locate top article via its H2 headline
+    // 3) Find the first container and its H2 headline
     const container = $('div.bg-white.flex.gap-6.w-full.shrink.justify-between').first();
     const headline  = container.find('h2.font-headline-xs').first();
     if (!headline.length) {
@@ -46,7 +31,7 @@ async function pollPage() {
       return;
     }
 
-    // 6) Grab its parent <a> for URL, text for title
+    // 4) Get its parent <a> for the URL
     const anchor = headline.closest('a');
     const href   = anchor.attr('href');
     const title  = headline.text().trim();
@@ -55,24 +40,24 @@ async function pollPage() {
       return;
     }
 
-    // 7) Normalize link
+    // 5) Normalize to absolute URL
     const absoluteLink = href.startsWith('http')
       ? href
       : `https://www.coindesk.com${href}`;
 
-    // 8) Detect & log only on change
+    // 6) Detect change
     if (lastSeenLink === null || absoluteLink !== lastSeenLink) {
       lastSeenLink = absoluteLink;
       console.log(`${now} → New top article detected:`);
-      console.log(`    Title : ${title}`);
-      console.log(`    Link  : ${absoluteLink}`);
+      console.log(`    Title: ${title}`);
+      console.log(`    Link : ${absoluteLink}`);
     } else {
       console.log(`${now} – no change (still ${title})`);
     }
 
   } catch (err) {
     if (err.response && err.response.status === 429) {
-      console.warn(`${now} – rate limited (429) – stopping poll`);
+      console.warn(`${now} – rate limited (429), stopping poll`);
       clearInterval(intervalId);
     } else {
       console.error(`${now} – error:`, err.message);
@@ -80,6 +65,6 @@ async function pollPage() {
   }
 }
 
-console.log(`Starting optimized poller every ${POLL_INTERVAL_MS} ms`);
-pollPage(); // run immediately
+console.log(`Starting partial‐GET poller every ${POLL_INTERVAL_MS} ms`);
+pollPage();  // run once immediately
 intervalId = setInterval(pollPage, POLL_INTERVAL_MS);
