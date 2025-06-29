@@ -13,32 +13,36 @@ async function pollPage() {
     const resp = await axios.get(URL, { timeout: 5000 });
     const $ = cheerio.load(resp.data);
 
-    // 1) Select the top article's <a> inside that div.bg-white.flex…
-    const topAnchor = $('div.bg-white.flex.gap-6.w-full.shrink.justify-between')
-      .find('a').first();
-
-    const link = topAnchor.attr('href');
-    const title = topAnchor.find('title, h2, h3').text().trim()  
-      || topAnchor.text().trim();
-
-    if (!link) {
-      console.warn(`${now} – could not find top article selector`);
+    // 1) Grab the first "bg-white flex gap-6 w-full shrink justify-between" block
+    const container = $('div.bg-white.flex.gap-6.w-full.shrink.justify-between').first();
+    if (!container.length) {
+      console.warn(`${now} – selector not found`);
       return;
     }
 
-    // 2) Normalize to absolute URL
-    const absoluteLink = link.startsWith('http')
-      ? link
-      : `https://www.coindesk.com${link}`;
+    // 2) Within that block, grab the first <a>
+    const anchor = container.find('a').first();
+    const href   = anchor.attr('href');
+    const title  = anchor.text().trim();
 
-    // 3) Compare & log only on change
+    if (!href) {
+      console.warn(`${now} – no <a> href in top container`);
+      return;
+    }
+
+    // 3) Normalize to absolute URL
+    const absoluteLink = href.startsWith('http')
+      ? href
+      : `https://www.coindesk.com${href}`;
+
+    // 4) Log on change
     if (absoluteLink !== lastSeenLink) {
       lastSeenLink = absoluteLink;
-      console.log(`${now} → New top article:`);
-      console.log(`    Title: ${title}`);
-      console.log(`    Link : ${absoluteLink}`);
+      console.log(`${now} → New top article detected:`);
+      console.log(`    Title : ${title}`);
+      console.log(`    Link  : ${absoluteLink}`);
     } else {
-      console.log(`${now} – no change`);
+      console.log(`${now} – no change (still ${absoluteLink})`);
     }
 
   } catch (err) {
