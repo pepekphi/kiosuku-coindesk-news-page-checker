@@ -1,7 +1,7 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 
-const POLL_INTERVAL_MS = 2000;
+const POLL_INTERVAL_MS = 4000;
 const URL = 'https://www.coindesk.com/latest-crypto-news';
 const MAX_BYTES = 10 * 1024; // pull only first x KiB
 
