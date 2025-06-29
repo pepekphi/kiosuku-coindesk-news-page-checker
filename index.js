@@ -1,7 +1,7 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 
-const POLL_INTERVAL_MS = 3000;
+const POLL_INTERVAL_MS = 12000;
 const URL = 'https://www.coindesk.com/latest-crypto-news';
 const MAX_BYTES = 1 * 1024; // pull only first x KiB, CoinDesk server seems to not support this btw but keeping it anyway.
 
