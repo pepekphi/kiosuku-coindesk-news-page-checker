@@ -1,9 +1,9 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 
-const POLL_INTERVAL_MS = 4000;
+const POLL_INTERVAL_MS = 3000;
 const URL = 'https://www.coindesk.com/latest-crypto-news';
-const MAX_BYTES = 0.5 * 1024; // pull only first x KiB, it worked with 5
+const MAX_BYTES = 0.3 * 1024; // pull only first x KiB, it worked with 5
 
 let lastSeenLink = null;
 let intervalId;
@@ -52,7 +52,7 @@ async function pollPage() {
       console.log(`    Title: ${title}`);
       console.log(`    Link : ${absoluteLink}`);
     } else {
-      console.log(`${now} – no change (still ${title})`);
+      //console.log(`${now} – no change (still ${title})`);
     }
 
   } catch (err) {
